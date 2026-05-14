@@ -1,0 +1,122 @@
+server {    
+        listen       80;    
+        #listen       [::]:80;    
+        server_name  domain;    #请修改为域名
+          
+        # 强制重定向 HTTP 到 HTTPS  
+        return 301 https://$host$request_uri;    
+}  
+  
+server {                  
+        listen 443 ssl;  # 启用 SSL          
+        #listen       [::]:443 ssl;  
+        http2 on;  # 启用 HTTP/2，单独一行    
+        server_name  domain;    #请修改为域名
+  
+        access_log  /usr/local/nginx/logs/domain.log json;  
+        error_log  /usr/local/nginx/logs/domain.error.log;  
+  
+        # SSL 证书配置  
+        ssl_certificate     /usr/local/nginx/conf/ssl/domain.pem;  # 替换为您的证书路径  
+        ssl_certificate_key /usr/local/nginx/conf/ssl/domain.key;  # 替换为您的私钥路径  
+        ssl_protocols       TLSv1.2 TLSv1.3;                   # 强制使用 TLS 1.2 和 1.3  
+        ssl_ciphers 'ECDHE-ECDSA-CHACHA20-POLY1305:ECDHE-RSA-CHACHA20-POLY1305:ECDHE-ECDSA-AES128-GCM-SHA256:ECDHE-RSA-AES128-GCM-SHA256:ECDHE-ECDSA-AES256-GCM-SHA384:ECDHE-RSA-AES256-GCM-SHA384:DHE-RSA-AES128-GCM-SHA256:DHE-RSA-AES256-GCM-SHA384';
+        ssl_prefer_server_ciphers on;  
+		ssl_session_cache shared:SSL:10m; #启用 SSL/TLS 会话缓存，减少握手开销。
+		ssl_session_timeout 10m; #控制 SSL/TLS 会话缓存的超时时间。
+		ssl_session_tickets off;
+
+        # OCSP Stapling
+        #ssl_stapling on;
+        #ssl_stapling_verify on;
+        resolver 1.1.1.1 8.8.8.8 valid=300s;
+        resolver_timeout 5s;
+		
+		# 安全头
+		add_header Strict-Transport-Security "max-age=31536000"; #强制浏览器使用 HTTPS 访问（HSTS 策略）		
+		add_header X-Content-Type-Options "nosniff";#禁止嗅探
+		add_header X-Frame-Options "DENY";#完全禁止任何域名嵌入该页面
+		#add_header Content-Security-Policy "default-src 'self'; frame-ancestors 'none';";
+		error_page 497  https://$host$request_uri; #处理 HTTP 请求误发到 HTTPS 端口的情况
+
+#反向代理模块 
+
+	    # Forbidden files or directories
+	    location ~ ^/(\.user.ini|\.htaccess|\.git|\.env|\.svn|\.project|LICENSE|README.md)
+	    {
+	        return 404;
+	    }
+
+	    # Directory verification related settings for one-click application for SSL certificate
+	    location ~ \.well-known{
+	        allow all;
+	    }
+
+	    #Prohibit putting sensitive files in certificate verification directory
+	    if ( $uri ~ "^/\.well-known/.*\.(php|jsp|py|js|css|lua|ts|go|zip|tar\.gz|rar|7z|sql|bak)$" ) {
+	        return 403;
+	    }
+	    
+		location ~* \.(jpg|jpeg|png|gif|webp|css|js|woff|woff2)$ {
+			# 防盗链
+			valid_referers none blocked  
+				  *.tofzl.com  
+				  www.nodeseek.com  
+				  *.fzl.ee  
+				  img.fzl.ee  
+				  localhost  
+				  127.0.0.1;
+		
+			if ($invalid_referer) {
+				return 403;
+				# 或返回替代图片：
+				# rewrite ^ /blocked.png;
+			}
+		
+			# 统一缓存策略（1小时）
+			add_header Cache-Control "public, max-age=3600, immutable";	
+			proxy_pass http://127.0.0.1:1;			    
+		}	
+						
+		location / {
+		        #通用基础配置
+			    proxy_pass http://127.0.0.1:1;
+			    add_header Cache-Control "no-cache";#动态资源不缓存
+			    proxy_set_header Host $host; #将客户端的原始请求域名传递给后端服务器，反代HTTPS时需修改为后端域名
+			    proxy_set_header X-Real-IP $remote_addr; #传递客户端的真实 IP 地址给后端
+			    proxy_set_header X-Forwarded-Proto $scheme;  # 传递协议是HTTP还是HTTPS
+			    proxy_set_header X-Forwarded-Host $http_host;# 传递客户端的原始 Host 头部
+			    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for; #记录完整的代理链 IP 地址列表，用于追踪请求路径。
+			    #WebSocket
+			    proxy_set_header Upgrade $http_upgrade;#用于 WebSocket 或 HTTP/2 协议升级，将客户端的 `Upgrade` 头（如 `websocket`）透传给后端
+			    proxy_set_header Connection $connection_upgrade; #根据客户端动态判断是否升级为websocket
+			    #proxy_set_header Connection "upgrade";   #强制升级为websocket			    
+			    proxy_http_version 1.1;
+			    
+			    # 超时设置（防止 WebSocket 断开）
+				proxy_connect_timeout 600;
+				proxy_send_timeout    600;
+				proxy_read_timeout    600;
+				send_timeout          600;
+			    
+			    #视频播放下载
+			    #proxy_buffering off;#关闭缓冲
+			    #proxy_redirect off;#后端返回的如果是公网链接推荐关闭重定向比如alist直链
+			    #proxy_set_header Range $http_range;#大文件代理Range和If-Range通常组合使用用于视频流、下载服务
+	            #proxy_set_header If-Range $http_if_range;#断点续传
+		    
+			    #反代HTTPS
+			    #proxy_ssl_server_name on; #反代https时需要开启，搭配指定host域名				
+				#proxy_ssl_verify on;
+				#proxy_ssl_trusted_certificate /etc/ssl/certs/ca-certificates.crt;
+				#proxy_ssl_trusted_certificate /path/to/you.crt;#如果后端申请了CA证书就用系统根证书，否则就自签证书	
+				#proxy_ssl_verify_depth 2;
+				
+				#隐藏后端服务器响应中的指定头部字段，阻止WebSocket 或 HTTP/2 协议升级，适用于特殊协议
+				# proxy_hide_header Upgrade;
+				
+				#proxy_set_header Accept-Encoding "";#清空客户端请求中的 Accept-Encoding 头部 告诉后端服务器：“不要对响应进行压缩（如 gzip 或 br）。”	
+		}    
+	  
+#PROXY-END/         
+}
