@@ -13,6 +13,7 @@ ARG MODSEC_VERSION=3.0.15
 #从https://www.maxmind.com/注册用户获取 MAXMIND_ACCOUNT_ID 和 MAXMIND_LICENSE_KEY 的值
 ARG MAXMIND_ACCOUNT_ID=111111
 ARG MAXMIND_LICENSE_KEY=XXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+
 # 安装编译所需的依赖
 RUN apt-get update && apt-get install -y \
     git g++ make libtool automake autoconf \
@@ -142,13 +143,10 @@ RUN groupadd nginx && useradd -g nginx nginx && \
 # 2. 拷贝核心组件
 COPY --from=builder --chown=nginx:nginx /usr/local/nginx /usr/local/nginx
 COPY --from=builder /usr/local/lib/libpcre2-8.so* /usr/local/lib/
-# 拷贝时使用变量
 COPY --from=builder /usr/local/modsecurity/lib/libmodsecurity.so.${MODSEC_VERSION} /usr/local/lib/
 
-# 3. 整理后的配置一键拷贝（假设你在 builder 整理到了 /tmp/dist）
-# COPY --from=builder --chown=nginx:nginx /tmp/dist/ /usr/local/nginx/conf/
 
-# 4. 执行瘦身与配置刷新
+# 3. 执行瘦身与配置刷新
 RUN ln -s /usr/local/lib/libmodsecurity.so.${MODSEC_VERSION} /usr/local/lib/libmodsecurity.so.3 && \
     strip --strip-unneeded /usr/local/lib/libmodsecurity.so.${MODSEC_VERSION} && \
     echo "/usr/local/lib" > /etc/ld.so.conf.d/custom.conf && \
