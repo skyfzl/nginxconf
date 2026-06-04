@@ -30,7 +30,7 @@ RUN wget https://github.com/PCRE2Project/pcre2/releases/download/pcre2-${PCRE_VE
     ./configure --prefix=/usr/local --enable-unicode-properties --enable-jit && \
     make -j$(nproc) && make install
 
-# 2. 克隆所有模块及源码 (自动获取最新版)
+# 2. 克隆所有模块及源码 (自动获取最新版，ModSecurity 精确匹配版本)
 RUN git clone --recursive https://github.com/google/ngx_brotli.git && \
     git clone --depth 1 https://github.com/leev/ngx_http_geoip2_module.git && \
     git clone https://github.com/FRiCKLE/ngx_cache_purge.git && \
@@ -38,7 +38,8 @@ RUN git clone --recursive https://github.com/google/ngx_brotli.git && \
     git clone https://github.com/arut/nginx-dav-ext-module.git && \
     git clone --depth 1 https://github.com/nginx/njs.git && \
     git clone --depth 1 https://github.com/openssl/openssl.git && \
-    git clone --recursive --depth 1 https://github.com/owasp-modsecurity/ModSecurity.git && \
+    git clone --depth 1 --branch v${MODSEC_VERSION} https://github.com/owasp-modsecurity/ModSecurity.git && \
+    cd ModSecurity && git submodule update --init --recursive && cd .. && \
     git clone --depth 1 https://github.com/owasp-modsecurity/ModSecurity-nginx.git
 
 # 3. 编译 ModSecurity 核心库
