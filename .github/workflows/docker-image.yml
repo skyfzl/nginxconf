@@ -43,7 +43,7 @@ jobs:
         id: meta
         uses: docker/metadata-action@v5
         with:
-          images: ${{ secrets.DOCKERHUB_USERNAME }}/nginxconf
+          images: ${{ secrets.DOCKERHUB_USERNAME }}/nginx
           tags: |
             type=ref,event=branch
             type=semver,pattern={{version}}
