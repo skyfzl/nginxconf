@@ -32,8 +32,8 @@ jobs:
       - name: Log in to Docker Hub
         uses: docker/login-action@v3
         with:
-          username: ${{ secrets::DOCKERHUB_USERNAME }}
-          password: ${{ secrets::DOCKERHUB_TOKEN }}
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
 
       # 5. 提取元数据（自动生成镜像的标签，如 main, v1.0.0, latest 等）
       - name: Extract Docker metadata
@@ -54,8 +54,8 @@ jobs:
           context: .
           file: ./Dockerfile
           push: true
-          tags: ${{ id.meta.outputs.tags }}
-          labels: ${{ id.meta.outputs.labels }}
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
           # 利用 GitHub Actions 的缓存加速后续构建（避免每次都重新下载和编译没有变动的层）
           cache-from: type=gha
           cache-to: type=gha,mode=max
