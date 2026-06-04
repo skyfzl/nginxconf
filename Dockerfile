@@ -126,7 +126,7 @@ RUN mkdir -p /tmp/final_conf/ssl && \
 # --- 第二阶段：运行阶段 ---
 FROM debian:bookworm-slim
 
-ARG MODSEC_VERSION
+ARG MODSEC_VERSION=3.0.15
 
 # 1. 这里的合并是关键：安装 + 用户 + 目录 + 清理
 RUN groupadd nginx && useradd -g nginx nginx && \
