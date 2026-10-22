@@ -6,6 +6,7 @@ WORKDIR /usr/local/src
 
 # 定义版本变量，方便后续维护
 #NGINX最新稳定版 1.30.1，最新为主线版 1.31.8，这里请手动修改版本号
+# 更新修改处
 ARG NGINX_VERSION=1.31.8
 ARG CRS_VERSION=4.30.0
 ARG PCRE_VERSION=10.49
@@ -126,7 +127,8 @@ RUN mkdir -p /tmp/final_conf/ssl && \
 # --- 第二阶段：运行阶段 ---
 FROM debian:bookworm-slim
 
-ARG MODSEC_VERSION=3.0.15
+# 更新修改处
+ARG MODSEC_VERSION=3.0.17
 
 # 1. 这里的合并是关键：安装 + 用户 + 目录 + 清理
 RUN groupadd nginx && useradd -g nginx nginx && \
