@@ -7,7 +7,7 @@ WORKDIR /usr/local/src
 # 定义版本变量，方便后续维护
 #NGINX最新稳定版 1.30.1，最新为主线版 1.31.8，这里请手动修改版本号
 # 更新修改处
-ARG NGINX_VERSION=1.31.8
+ARG NGINX_VERSION=1.31.9
 ARG CRS_VERSION=4.30.0
 ARG PCRE_VERSION=10.49
 ARG MODSEC_VERSION=3.0.17
